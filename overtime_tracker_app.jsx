@@ -144,6 +144,58 @@ function getDayTypeMeta(dayType) {
 
 const STORAGE_API_URL = "/api/state";
 
+function getDesktopStorageApi() {
+  if (typeof window === "undefined") return null;
+  const api = window.electronAPI;
+  if (!api || typeof api.loadState !== "function" || typeof api.saveState !== "function") {
+    return null;
+  }
+  return api;
+}
+
+async function loadPersistedStateFromEnvironment() {
+  const desktopApi = getDesktopStorageApi();
+  if (desktopApi) {
+    return desktopApi.loadState();
+  }
+
+  const response = await fetch(STORAGE_API_URL);
+  if (!response.ok) {
+    throw new Error(`Load failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+async function savePersistedStateToEnvironment(state) {
+  const desktopApi = getDesktopStorageApi();
+  if (desktopApi) {
+    return desktopApi.saveState(state);
+  }
+
+  const response = await fetch(STORAGE_API_URL, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(state),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Save failed with status ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function getPersistedStatePathFromEnvironment() {
+  const desktopApi = getDesktopStorageApi();
+  if (desktopApi && typeof desktopApi.getStatePath === "function") {
+    return desktopApi.getStatePath();
+  }
+
+  return "data/overtime-state.json";
+}
+
 function createInitialEntries(todayStr) {
   return {
     [todayStr]: {
@@ -176,6 +228,10 @@ function mergePersistedState(rawState, today, todayStr) {
         ? rawState.entries
         : defaults.entries,
   };
+}
+
+function getStorageLabel() {
+  return getDesktopStorageApi() ? "本机应用数据" : "当前文件夹";
 }
 
 function runSelfChecks() {
@@ -452,18 +508,26 @@ export default function OvertimeTrackerApp() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [hasLoadedPersistedState, setHasLoadedPersistedState] = useState(false);
   const [saveStatus, setSaveStatus] = useState("正在加载本地数据...");
+  const [storagePath, setStoragePath] = useState("正在读取数据文件路径...");
 
   useEffect(() => {
     let isActive = true;
 
+    getPersistedStatePathFromEnvironment()
+      .then((path) => {
+        if (isActive) {
+          setStoragePath(path);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setStoragePath("数据文件路径读取失败");
+        }
+      });
+
     async function loadPersistedState() {
       try {
-        const response = await fetch(STORAGE_API_URL);
-        if (!response.ok) {
-          throw new Error(`Load failed with status ${response.status}`);
-        }
-
-        const data = await response.json();
+        const data = await loadPersistedStateFromEnvironment();
         if (!isActive) return;
 
         const nextState = mergePersistedState(data, today, todayStr);
@@ -496,25 +560,14 @@ export default function OvertimeTrackerApp() {
     const timer = window.setTimeout(async () => {
       try {
         setSaveStatus("正在保存到本地文件...");
-        const response = await fetch(STORAGE_API_URL, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            month,
-            targetHours,
-            baseHours,
-            entries,
-          }),
-          signal: controller.signal,
+        await savePersistedStateToEnvironment({
+          month,
+          targetHours,
+          baseHours,
+          entries,
         });
 
-        if (!response.ok) {
-          throw new Error(`Save failed with status ${response.status}`);
-        }
-
-        setSaveStatus("已保存到当前文件夹");
+        setSaveStatus(`已保存到${getStorageLabel()}`);
       } catch (error) {
         if (error.name === "AbortError") return;
         setSaveStatus("保存失败，请确认本地服务正在运行");
@@ -675,6 +728,7 @@ export default function OvertimeTrackerApp() {
                 直接按日历录入工时，并支持请假、出差、节假日。
               </p>
               <p className="mt-2 text-xs text-slate-400">{saveStatus}</p>
+              <p className="mt-1 break-all text-xs text-slate-400">数据文件：{storagePath}</p>
             </div>
             <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-3 md:w-auto">
               <label className="rounded-2xl border border-white/10 bg-white/10 p-3">
