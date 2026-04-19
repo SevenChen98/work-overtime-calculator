@@ -153,3 +153,34 @@ npm run build:desktop
 打包完成后，去这个目录拿程序：
 
 - [`release\加班工时计算器-win32-x64`](./release/加班工时计算器-win32-x64)
+
+## 清理与保留建议
+
+如果你暂时不再修改代码，只想保留源码仓库，可以删除：
+
+- [`node_modules`](./node_modules)
+- [`dist`](./dist)
+- [`release`](./release)
+
+以后需要恢复开发环境时，重新执行：
+
+```powershell
+npm install
+```
+
+如果你还想保留已经打包好的 exe 成品用于直接运行：
+
+- 可以删除：[`node_modules`](./node_modules)
+- 可以删除：[`dist`](./dist)
+- 需要保留：[`release\加班工时计算器-win32-x64`](./release/加班工时计算器-win32-x64)
+
+注意：
+
+- 不要删除 [`release\加班工时计算器-win32-x64\resources\app\node_modules`](./release/加班工时计算器-win32-x64/resources/app/node_modules)，它属于桌面版运行时依赖
+- 不建议把 `release` 目录里的 `node_modules` 复制回项目根目录当开发环境使用
+- 要恢复开发环境，正确方式始终是重新执行 `npm install`
+
+最简单的理解方式：
+
+- 项目根目录的 `node_modules` 是开发依赖
+- `release` 目录里的 `node_modules` 是打包后程序的运行依赖
