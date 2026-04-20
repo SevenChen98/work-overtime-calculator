@@ -625,9 +625,11 @@ export default function OvertimeTrackerApp() {
     const totalLeave = monthEntries.reduce((sum, item) => sum + (item.leaveHours || 0), 0);
     const totalOvertime = monthEntries.reduce((sum, item) => sum + item.overtime, 0);
     const remainingHours = Math.max(0, targetHours - totalOvertime);
+    
     const remainingWorkdays = monthEntries.filter(
-      (item) => item.dateStr > todayStr && item.shouldCountAsFutureWorkday,
+      (item) => item.shouldCountAsFutureWorkday && (item.dateStr > todayStr || (item.isToday && !item.hasAnyInput))
     ).length;
+    
     const workedDays = monthEntries.filter((item) => item.workedHours !== null).length;
     const excludedDays = monthEntries.filter((item) => item.dayType !== "normal").length;
     const avgWorked = workedDays > 0 ? totalWorked / workedDays : 0;
