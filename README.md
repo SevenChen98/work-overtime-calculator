@@ -1,6 +1,6 @@
 # 加班工时计算器
 
-一个基于 React + Vite + Electron 的加班工时记录工具。
+一个基于 React + Vite + Tauri 的加班工时记录工具。
 
 支持两种使用方式：
 
@@ -30,10 +30,10 @@ npm install
 
 - [`overtime_tracker_app.jsx`](./overtime_tracker_app.jsx)：主界面逻辑
 - [`src`](./src)：网页入口
-- [`electron`](./electron)：桌面版入口
+- [`src-tauri`](./src-tauri)：Tauri 桌面版入口
 - [`server.js`](./server.js)：网页版本地数据读写服务
 - [`data/overtime-state.json`](./data/overtime-state.json)：网页版默认数据文件
-- [`release`](./release)：桌面版打包产物
+- [`src-tauri/target`](./src-tauri/target)：Tauri 桌面版构建产物
 
 ## 启动网页版
 
@@ -70,7 +70,7 @@ npm run build
 
 ## 启动桌面版开发环境
 
-如果你想边改边看 Electron 桌面窗口效果，执行：
+如果你想边改边看 Tauri 桌面窗口效果，执行：
 
 ```powershell
 npm run dev:desktop
@@ -79,10 +79,10 @@ npm run dev:desktop
 说明：
 
 - 这个命令会先启动 Vite 开发服务器
-- 然后自动打开 Electron 窗口
-- 适合调试最终 `.exe` 的运行效果
+- 然后自动打开 Tauri 桌面窗口
+- 适合调试最终安装包的运行效果
 
-## 打包 Windows 桌面版 exe
+## 打包 Windows 桌面版安装包
 
 执行：
 
@@ -92,17 +92,16 @@ npm run build:desktop
 
 打包成功后，产物目录在：
 
-- [`release\加班工时计算器-win32-x64`](./release/加班工时计算器-win32-x64)
+- [`src-tauri\target\release\bundle\nsis`](./src-tauri/target/release/bundle/nsis)
 
-主程序是：
+安装包是：
 
-- [`release\加班工时计算器-win32-x64\加班工时计算器.exe`](./release/加班工时计算器-win32-x64/加班工时计算器.exe)
+- [`src-tauri\target\release\bundle\nsis\加班工时计算器_1.0.1_x64-setup.exe`](./src-tauri/target/release/bundle/nsis/加班工时计算器_1.0.1_x64-setup.exe)
 
 分享给别人时：
 
-- 不要只发单独一个 `.exe`
-- 要把整个 `release\加班工时计算器-win32-x64` 文件夹一起发
-- 更推荐先压缩成 zip，再发给别人
+- 直接发这个安装包即可
+- 对方运行安装包后就能正常安装和使用
 
 ## 网页版和 exe 版数据保存位置
 
@@ -110,13 +109,13 @@ npm run build:desktop
 
 - [`data/overtime-state.json`](./data/overtime-state.json)
 
-桌面版 exe 数据保存位置：
+桌面版数据保存位置：
 
 - 保存在当前 Windows 用户的应用数据目录
 - 默认类似：
 
 ```text
-C:\Users\你的用户名\AppData\Roaming\overtime-tracker-app\overtime-state.json
+C:\Users\你的用户名\AppData\Roaming\com.local.overtime-tracker\overtime-state.json
 ```
 
 桌面版界面顶部会直接显示当前数据文件的真实路径。
@@ -143,16 +142,16 @@ npm install
 npm run dev:desktop
 ```
 
-### 3. 从零开始打包 exe
+### 3. 从零开始打包桌面安装包
 
 ```powershell
 npm install
 npm run build:desktop
 ```
 
-打包完成后，去这个目录拿程序：
+打包完成后，去这个目录拿安装包：
 
-- [`release\加班工时计算器-win32-x64`](./release/加班工时计算器-win32-x64)
+- [`src-tauri\target\release\bundle\nsis`](./src-tauri/target/release/bundle/nsis)
 
 ## 清理与保留建议
 
@@ -161,6 +160,7 @@ npm run build:desktop
 - [`node_modules`](./node_modules)
 - [`dist`](./dist)
 - [`release`](./release)
+- [`src-tauri\target`](./src-tauri/target)
 
 以后需要恢复开发环境时，重新执行：
 
@@ -168,19 +168,22 @@ npm run build:desktop
 npm install
 ```
 
-如果你还想保留已经打包好的 exe 成品用于直接运行：
+如果你还想保留已经打包好的桌面安装包用于直接分发：
 
 - 可以删除：[`node_modules`](./node_modules)
 - 可以删除：[`dist`](./dist)
-- 需要保留：[`release\加班工时计算器-win32-x64`](./release/加班工时计算器-win32-x64)
+- 可以删除：[`release`](./release)
+- 可以删除：[`src-tauri\target`](./src-tauri/target)
+- 需要单独备份：[`src-tauri\target\release\bundle\nsis\加班工时计算器_1.0.1_x64-setup.exe`](./src-tauri/target/release/bundle/nsis/加班工时计算器_1.0.1_x64-setup.exe)
 
 注意：
 
-- 不要删除 [`release\加班工时计算器-win32-x64\resources\app\node_modules`](./release/加班工时计算器-win32-x64/resources/app/node_modules)，它属于桌面版运行时依赖
-- 不建议把 `release` 目录里的 `node_modules` 复制回项目根目录当开发环境使用
 - 要恢复开发环境，正确方式始终是重新执行 `npm install`
+- `src-tauri/target` 是 Rust 和 Tauri 的本地构建缓存，体积可能很大，但不是必须长期保留
+- 老的 [`release`](./release) 目录是之前 Electron 版本留下的产物，如果你已经切到 Tauri，可以直接删除
 
 最简单的理解方式：
 
 - 项目根目录的 `node_modules` 是开发依赖
-- `release` 目录里的 `node_modules` 是打包后程序的运行依赖
+- `src-tauri/target` 是桌面版构建缓存
+- 最终分享给别人时，只需要安装包文件，不需要整个构建目录

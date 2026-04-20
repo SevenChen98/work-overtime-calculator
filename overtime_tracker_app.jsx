@@ -144,19 +144,19 @@ function getDayTypeMeta(dayType) {
 
 const STORAGE_API_URL = "/api/state";
 
-function getDesktopStorageApi() {
+function getTauriCore() {
   if (typeof window === "undefined") return null;
-  const api = window.electronAPI;
-  if (!api || typeof api.loadState !== "function" || typeof api.saveState !== "function") {
+  const tauri = window.__TAURI__;
+  if (!tauri || !tauri.core || typeof tauri.core.invoke !== "function") {
     return null;
   }
-  return api;
+  return tauri.core;
 }
 
 async function loadPersistedStateFromEnvironment() {
-  const desktopApi = getDesktopStorageApi();
-  if (desktopApi) {
-    return desktopApi.loadState();
+  const tauriCore = getTauriCore();
+  if (tauriCore) {
+    return tauriCore.invoke("load_state");
   }
 
   const response = await fetch(STORAGE_API_URL);
@@ -167,9 +167,9 @@ async function loadPersistedStateFromEnvironment() {
 }
 
 async function savePersistedStateToEnvironment(state) {
-  const desktopApi = getDesktopStorageApi();
-  if (desktopApi) {
-    return desktopApi.saveState(state);
+  const tauriCore = getTauriCore();
+  if (tauriCore) {
+    return tauriCore.invoke("save_state", { state });
   }
 
   const response = await fetch(STORAGE_API_URL, {
@@ -188,9 +188,9 @@ async function savePersistedStateToEnvironment(state) {
 }
 
 async function getPersistedStatePathFromEnvironment() {
-  const desktopApi = getDesktopStorageApi();
-  if (desktopApi && typeof desktopApi.getStatePath === "function") {
-    return desktopApi.getStatePath();
+  const tauriCore = getTauriCore();
+  if (tauriCore) {
+    return tauriCore.invoke("get_state_path");
   }
 
   return "data/overtime-state.json";
@@ -231,7 +231,7 @@ function mergePersistedState(rawState, today, todayStr) {
 }
 
 function getStorageLabel() {
-  return getDesktopStorageApi() ? "本机应用数据" : "当前文件夹";
+  return getTauriCore() ? "本机应用数据" : "当前文件夹";
 }
 
 function runSelfChecks() {
@@ -723,7 +723,10 @@ export default function OvertimeTrackerApp() {
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <div className="text-xs uppercase tracking-[0.2em] text-slate-300">加班管理</div>
-              <h1 className="mt-2 text-3xl font-bold">每月加班追踪器</h1>
+              <div className="mt-2 flex items-baseline gap-3">
+                <h1 className="text-3xl font-bold">每月加班追踪器</h1>
+                <span className="text-sm font-medium text-slate-400">by SpideySeven</span>
+              </div>
               <p className="mt-2 text-sm text-slate-300">
                 直接按日历录入工时，并支持请假、出差、节假日。
               </p>
